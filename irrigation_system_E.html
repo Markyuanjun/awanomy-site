@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mechanical Irrigation Control System</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;600&family=Inter:wght@300;400;700&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #21262d;
+    --accent: #3fb950;
+    --accent2: #58a6ff;
+    --warn: #d29922;
+    --dry: #f85149;
+    --wet: #3fb950;
+    --text: #e6edf3;
+    --muted: #8b949e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+  }
+
+  header .tag {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    background: #1f2937;
+    border: 1px solid var(--border);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+  }
+
+  header h1 {
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 0;
+    height: calc(100vh - 57px);
+  }
+
+  /* LEFT: Diagram */
+  .diagram-area {
+    padding: 24px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  /* System SVG diagram */
+  .system-svg {
+    width: 100%;
+    background: #0a0e14;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+  }
+
+  /* Sensor nodes grid */
+  .sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  .sensor-node {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sensor-node::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .sensor-node.dry { border-color: var(--dry); }
+  .sensor-node.dry::before { background: rgba(248,81,73,0.08); opacity: 1; }
+  .sensor-node.wet { border-color: var(--wet); }
+  .sensor-node.wet::before { background: rgba(63,185,80,0.08); opacity: 1; }
+
+  .sensor-icon {
+    font-size: 24px;
+    margin-bottom: 6px;
+    display: block;
+  }
+
+  .sensor-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .sensor-status {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .sensor-node.dry .sensor-status { color: var(--dry); }
+  .sensor-node.wet .sensor-status { color: var(--wet); }
+
+  .sensor-bar {
+    margin-top: 8px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .sensor-bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.5s ease;
+  }
+
+  .sensor-node.dry .sensor-bar-fill { background: var(--dry); }
+  .sensor-node.wet .sensor-bar-fill { background: var(--wet); }
+
+  .sensor-vote {
+    margin-top: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+  }
+
+  .sensor-node.dry .sensor-vote { color: var(--dry); }
+  .sensor-node.wet .sensor-vote { color: var(--wet); }
+
+  /* Vote counter */
+  .vote-display {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .vote-bars {
+    display: flex;
+    gap: 6px;
+    align-items: flex-end;
+    height: 40px;
+  }
+
+  .vote-bar-item {
+    width: 20px;
+    border-radius: 2px 2px 0 0;
+    transition: height 0.4s ease, background 0.3s;
+    min-height: 4px;
+  }
+
+  .vote-info { flex: 1; }
+
+  .vote-count {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .vote-count .dry-count { color: var(--dry); }
+  .vote-count .sep { color: var(--muted); font-size: 20px; margin: 0 4px; }
+  .vote-count .total { color: var(--muted); font-size: 14px; }
+
+  .vote-verdict {
+    font-size: 12px;
+    margin-top: 4px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .verdict-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.6; transform: scale(0.8); }
+  }
+
+  /* Valve + Sprinkler */
+  .actuator-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .actuator-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    transition: border-color 0.3s;
+  }
+
+  .actuator-card.active { border-color: var(--accent2); }
+
+  .actuator-icon {
+    font-size: 28px;
+    min-width: 36px;
+    text-align: center;
+    position: relative;
+  }
+
+  .spray-anim {
+    position: absolute;
+    top: -4px; right: -8px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    animation: spray 0.8s infinite;
+  }
+
+  @keyframes spray {
+    0% { transform: translateY(0) translateX(0); opacity: 0.8; }
+    100% { transform: translateY(-8px) translateX(4px); opacity: 0; }
+  }
+
+  .actuator-card.active .spray-anim { opacity: 1; }
+
+  .actuator-info { flex: 1; }
+  .actuator-name { font-size: 13px; font-weight: 700; }
+  .actuator-desc { font-size: 11px; color: var(--muted); margin-top: 2px; font-family: 'IBM Plex Mono', monospace; }
+  .actuator-state {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    margin-top: 6px;
+    display: inline-block;
+  }
+
+  .actuator-card.active .actuator-state { background: rgba(88,166,255,0.15); color: var(--accent2); }
+  .actuator-card:not(.active) .actuator-state { background: rgba(139,148,158,0.1); color: var(--muted); }
+
+  /* RIGHT: Panel */
+  .panel {
+    display: flex;
+    flex-direction: column;
+    background: var(--surface);
+    overflow-y: auto;
+  }
+
+  .panel-section {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .panel-section:last-child { border-bottom: none; }
+
+  .panel-section h3 {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+  }
+
+  /* Logic table */
+  .logic-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+  }
+
+  .logic-table th {
+    text-align: left;
+    color: var(--muted);
+    padding: 4px 6px;
+    border-bottom: 1px solid var(--border);
+    font-weight: 400;
+    font-size: 10px;
+  }
+
+  .logic-table td {
+    padding: 6px 6px;
+    border-bottom: 1px solid rgba(33,38,45,0.5);
+  }
+
+  .logic-table tr.active-row td { background: rgba(63,185,80,0.08); }
+
+  .bit { 
+    display: inline-block;
+    width: 16px; height: 16px;
+    border-radius: 3px;
+    text-align: center;
+    line-height: 16px;
+    font-size: 10px;
+  }
+
+  .bit-1 { background: rgba(248,81,73,0.2); color: var(--dry); }
+  .bit-0 { background: rgba(63,185,80,0.15); color: var(--wet); }
+  .bit-out-1 { background: rgba(88,166,255,0.2); color: var(--accent2); }
+  .bit-out-0 { background: rgba(33,38,45,0.8); color: var(--muted); }
+
+  /* Sensor schematic */
+  .schematic-box {
+    background: #0a0e14;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    line-height: 1.9;
+    color: #7ee787;
+    white-space: pre;
+  }
+
+  .sch-comment { color: var(--muted); }
+  .sch-wire { color: var(--accent2); }
+  .sch-comp { color: var(--warn); }
+
+  /* Threshold slider */
+  .threshold-control {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .threshold-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .threshold-label { font-size: 12px; color: var(--muted); }
+  .threshold-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    outline: none;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    cursor: pointer;
+  }
+
+  .sim-btn {
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 4px;
+    cursor: pointer;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+
+  .sim-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+
+  .hint {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.5;
+  }
+
+  /* Flow diagram */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    font-size: 12px;
+  }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-left: 2px solid var(--border);
+    padding-left: 14px;
+    position: relative;
+    transition: border-color 0.3s;
+  }
+
+  .flow-step::before {
+    content: '';
+    position: absolute;
+    left: -5px; top: 13px;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+
+  .flow-step.active { border-left-color: var(--accent); }
+  .flow-step.active::before { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+
+  .flow-step-title { font-weight: 700; font-size: 12px; }
+  .flow-step-desc { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  @media (max-width: 700px) {
+    .main { grid-template-columns: 1fr; height: auto; }
+    .panel { border-top: 1px solid var(--border); }
+    .sensor-grid { grid-template-columns: repeat(2, 1fr); }
+    .actuator-row { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="tag">MECH-CTRL</span>
+  <h1>Mechanical Irrigation — Multi-Node Majority-Vote Control System</h1>
+</header>
+
+<div class="main">
+  <!-- LEFT -->
+  <div class="diagram-area">
+
+    <div>
+      <div class="section-title">Soil Moisture Sensor Nodes — Click to Toggle State</div>
+      <div class="sensor-grid" id="sensorGrid"></div>
+    </div>
+
+    <div>
+      <div class="section-title">Vote Result</div>
+      <div class="vote-display">
+        <div class="vote-bars" id="voteBars"></div>
+        <div class="vote-info">
+          <div class="vote-count">
+            <span class="dry-count" id="dryCount">0</span>
+            <span class="sep">/</span>
+            <span class="total" id="totalCount">4</span>
+            <span style="color:var(--muted);font-size:13px;margin-left:6px">dry votes</span>
+          </div>
+          <div class="vote-verdict" id="verdict">
+            <span class="verdict-dot" id="verdictDot" style="background:var(--muted)"></span>
+            <span id="verdictText" style="color:var(--muted)">Awaiting readings...</span>
+          </div>
+        </div>
+        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);text-align:right">
+          threshold<br>
+          <span style="font-size:22px;color:var(--accent);font-weight:600" id="threshDisplay">≥2</span>
+          <br>votes to trigger
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Actuator Status</div>
+      <div class="actuator-row">
+        <div class="actuator-card" id="valveCard">
+          <div class="actuator-icon">🔧</div>
+          <div class="actuator-info">
+            <div class="actuator-name">Solenoid Valve (N.C.)</div>
+            <div class="actuator-desc">12V / latching relay</div>
+            <div class="actuator-state" id="valveState">CLOSED</div>
+          </div>
+        </div>
+        <div class="actuator-card" id="sprinklerCard">
+          <div class="actuator-icon">
+            💧
+            <span class="spray-anim" id="spray1">·</span>
+            <span class="spray-anim" id="spray2" style="animation-delay:0.3s">·</span>
+          </div>
+          <div class="actuator-info">
+            <div class="actuator-name">Sprinkler Head</div>
+            <div class="actuator-desc">pressure-driven scatter</div>
+            <div class="actuator-state" id="sprinklerState">STANDBY</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">Control Flow</div>
+      <div class="flow" id="flowDiagram">
+        <div class="flow-step active" id="flow0">
+          <div>
+            <div class="flow-step-title">① Soil Resistance Sensing</div>
+            <div class="flow-step-desc">Porous ceramic probes measure soil conductivity</div>
+          </div>
+        </div>
+        <div class="flow-step" id="flow1">
+          <div>
+            <div class="flow-step-title">② Analog Comparator Decision</div>
+            <div class="flow-step-desc">LM393 threshold compare → dry/wet digital signal</div>
+          </div>
+        </div>
+        <div class="flow-step" id="flow2">
+          <div>
+            <div class="flow-step-title">③ Mechanical Vote Adder</div>
+            <div class="flow-step-desc">Relay series/parallel → majority-vote logic</div>
+          </div>
+        </div>
+        <div class="flow-step" id="flow3">
+          <div>
+            <div class="flow-step-title">④ Valve Trigger</div>
+            <div class="flow-step-desc">Latching relay opens valve → water pressure drives sprinkler</div>
+          </div>
+        </div>
+        <div class="flow-step" id="flow4">
+          <div>
+            <div class="flow-step-title">⑤ Auto Shutoff on Recovery</div>
+            <div class="flow-step-desc">Majority nodes wet → vote flips → valve closes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="panel">
+
+    <div class="panel-section">
+      <h3>Vote Threshold</h3>
+      <div class="threshold-control">
+        <div class="threshold-row">
+          <span class="threshold-label">Dry nodes required to trigger</span>
+          <span class="threshold-value" id="threshVal">2 / 4</span>
+        </div>
+        <input type="range" id="threshSlider" min="1" max="4" value="2" step="1">
+        <div class="hint">Current: spray activates when <strong id="threshDesc" style="color:var(--accent)">≥2 nodes dry</strong></div>
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Truth Table (4 nodes)</h3>
+      <table class="logic-table" id="logicTable">
+        <thead>
+          <tr>
+            <th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>Dry</th><th>Spray</th>
+          </tr>
+        </thead>
+        <tbody id="logicBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel-section">
+      <h3>Sensor Circuit Schematic</h3>
+      <div class="schematic-box"><span class="sch-comment">// Single-node moisture detection</span>
+<span class="sch-wire">VCC(3.3V)</span>
+   │
+  <span class="sch-comp">[10kΩ]</span>  ← pull-up resistor
+   │
+   ├──→ <span class="sch-comp">LM393(+)</span> comparator +in
+   │
+<span class="sch-comp">[soil probes]</span> ← porous ceramic electrodes
+   │               dry  ≈ 300kΩ
+  GND              wet  ≈ 5kΩ
+
+<span class="sch-comment">// Threshold setting (−in)</span>
+VCC─<span class="sch-comp">[R1]</span>─<span class="sch-comp">[R2]</span>─GND
+         ├→ <span class="sch-comp">LM393(-)</span>
+         <span class="sch-comment">// Adjust R1/R2 ratio to
+// set the moisture trigger point</span>
+
+output: <span class="sch-wire">HIGH=dry</span> / <span class="sch-wire">LOW=wet</span></div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Vote Logic Implementation</h3>
+      <div class="schematic-box"><span class="sch-comment">// Relay majority vote (threshold=2)</span>
+
+<span class="sch-comment">// Option A: relay series counter</span>
+S1─<span class="sch-comp">[RLY1]</span>─┐
+S2─<span class="sch-comp">[RLY2]</span>─┼─→ <span class="sch-wire">current adder</span>
+S3─<span class="sch-comp">[RLY3]</span>─┤         ↓
+S4─<span class="sch-comp">[RLY4]</span>─┘   <span class="sch-comp">[threshold relay]</span>
+                         ↓
+                  <span class="sch-wire">valve trigger signal</span>
+
+<span class="sch-comment">// Option B: pure mechanical lever sum</span>
+4 float weights stack up
+→ exceed spring preload force
+→ trigger valve open</div>
+    </div>
+
+    <div class="panel-section">
+      <h3>Simulation Controls</h3>
+      <button class="sim-btn" id="randomBtn">⟳ Randomize Soil States</button>
+      <button class="sim-btn" id="dryAllBtn" style="margin-top:4px">Set All Dry</button>
+      <button class="sim-btn" id="wetAllBtn" style="margin-top:4px">Set All Wet</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const NUM = 4;
+const positions = ['NW Corner', 'NE Corner', 'Center', 'South Side'];
+const icons = ['🌱', '🌿', '🍃', '🌾'];
+
+let states = [false, false, false, false]; // false=wet, true=dry
+let threshold = 2;
+
+function init() {
+  const grid = document.getElementById('sensorGrid');
+  grid.innerHTML = '';
+  for (let i = 0; i < NUM; i++) {
+    const node = document.createElement('div');
+    node.className = 'sensor-node wet';
+    node.id = `sensor${i}`;
+    node.innerHTML = `
+      <span class="sensor-icon">${icons[i]}</span>
+      <span class="sensor-label">Node ${i+1} · ${positions[i]}</span>
+      <span class="sensor-status" id="sst${i}">WET</span>
+      <div class="sensor-bar"><div class="sensor-bar-fill" id="sbar${i}" style="width:75%"></div></div>
+      <div class="sensor-vote" id="svote${i}">✓ no vote</div>
+    `;
+    node.addEventListener('click', () => toggle(i));
+    grid.appendChild(node);
+  }
+  buildLogicTable();
+  render();
+}
+
+function toggle(i) {
+  states[i] = !states[i];
+  render();
+}
+
+function render() {
+  for (let i = 0; i < NUM; i++) {
+    const node = document.getElementById(`sensor${i}`);
+    const isDry = states[i];
+    node.className = `sensor-node ${isDry ? 'dry' : 'wet'}`;
+    document.getElementById(`sst${i}`).textContent = isDry ? 'DRY' : 'WET';
+    document.getElementById(`sbar${i}`).style.width = isDry ? '20%' : '80%';
+    document.getElementById(`svote${i}`).textContent = isDry ? '✕ dry vote' : '✓ no vote';
+  }
+
+  const dryCount = states.filter(Boolean).length;
+  const sprinkle = dryCount >= threshold;
+
+  // vote bars
+  const barsEl = document.getElementById('voteBars');
+  barsEl.innerHTML = '';
+  for (let i = 0; i < NUM; i++) {
+    const b = document.createElement('div');
+    b.className = 'vote-bar-item';
+    b.style.height = (i < dryCount ? 36 : 10) + 'px';
+    b.style.background = i < dryCount
+      ? (sprinkle ? 'var(--accent2)' : 'var(--dry)')
+      : 'var(--border)';
+    barsEl.appendChild(b);
+  }
+
+  document.getElementById('dryCount').textContent = dryCount;
+  document.getElementById('totalCount').textContent = NUM;
+
+  const dot = document.getElementById('verdictDot');
+  const text = document.getElementById('verdictText');
+  if (sprinkle) {
+    dot.style.background = 'var(--accent2)';
+    text.style.color = 'var(--accent2)';
+    text.textContent = `${dryCount} dry votes ≥ ${threshold} → sprinkler ON`;
+  } else {
+    dot.style.background = 'var(--wet)';
+    text.style.color = 'var(--wet)';
+    text.textContent = `${dryCount} dry votes < ${threshold} → valve CLOSED`;
+  }
+
+  // actuators
+  const vc = document.getElementById('valveCard');
+  const sc = document.getElementById('sprinklerCard');
+  const vs = document.getElementById('valveState');
+  const ss = document.getElementById('sprinklerState');
+  if (sprinkle) {
+    vc.classList.add('active'); sc.classList.add('active');
+    vs.textContent = 'OPEN'; ss.textContent = 'SPRAYING';
+  } else {
+    vc.classList.remove('active'); sc.classList.remove('active');
+    vs.textContent = 'CLOSED'; ss.textContent = 'STANDBY';
+  }
+
+  // flow steps
+  for (let i = 0; i <= 4; i++) {
+    document.getElementById(`flow${i}`).classList.toggle('active', sprinkle ? i <= 3 : i === 0);
+  }
+  if (sprinkle) document.getElementById('flow4').classList.remove('active');
+
+  // logic table highlight
+  updateLogicTable();
+}
+
+function buildLogicTable() {
+  const body = document.getElementById('logicBody');
+  body.innerHTML = '';
+  // show a subset for clarity (all 16 rows)
+  for (let mask = 0; mask < 16; mask++) {
+    const bits = [3,2,1,0].map(b => (mask >> b) & 1);
+    const dryCount = bits.reduce((a,b)=>a+b,0);
+    const out = dryCount >= threshold ? 1 : 0;
+    const tr = document.createElement('tr');
+    tr.id = `row${mask}`;
+    tr.innerHTML = bits.map(b =>
+      `<td><span class="bit ${b?'bit-1':'bit-0'}">${b?'D':'W'}</span></td>`
+    ).join('') +
+    `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${dryCount>0?'var(--dry)':'var(--wet)'}">${dryCount}</td>` +
+    `<td><span class="bit ${out?'bit-out-1':'bit-out-0'}">${out?'ON':'—'}</span></td>`;
+    body.appendChild(tr);
+  }
+}
+
+function updateLogicTable() {
+  let mask = 0;
+  for (let i = 0; i < NUM; i++) if (states[i]) mask |= (1 << (NUM-1-i));
+  for (let m = 0; m < 16; m++) {
+    const row = document.getElementById(`row${m}`);
+    row.classList.toggle('active-row', m === mask);
+  }
+  // rebuild to update threshold-dependent coloring
+  const body = document.getElementById('logicBody');
+  body.innerHTML = '';
+  for (let m = 0; m < 16; m++) {
+    const bits = [3,2,1,0].map(b => (m >> b) & 1);
+    const dc = bits.reduce((a,b)=>a+b,0);
+    const out = dc >= threshold ? 1 : 0;
+    const tr = document.createElement('tr');
+    tr.id = `row${m}`;
+    if (m === mask) tr.classList.add('active-row');
+    tr.innerHTML = bits.map(b =>
+      `<td><span class="bit ${b?'bit-1':'bit-0'}">${b?'D':'W'}</span></td>`
+    ).join('') +
+    `<td style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:${dc>0?'var(--dry)':'var(--wet)'}">${dc}</td>` +
+    `<td><span class="bit ${out?'bit-out-1':'bit-out-0'}">${out?'ON':'—'}</span></td>`;
+    body.appendChild(tr);
+  }
+}
+
+// Threshold slider
+document.getElementById('threshSlider').addEventListener('input', function() {
+  threshold = parseInt(this.value);
+  document.getElementById('threshVal').textContent = `${threshold} / ${NUM}`;
+  document.getElementById('threshDisplay').textContent = `≥${threshold}`;
+  document.getElementById('threshDesc').textContent = `≥${threshold} nodes dry`;
+  buildLogicTable();
+  render();
+});
+
+document.getElementById('randomBtn').addEventListener('click', () => {
+  states = states.map(() => Math.random() > 0.45);
+  render();
+});
+
+document.getElementById('dryAllBtn').addEventListener('click', () => {
+  states = Array(NUM).fill(true); render();
+});
+
+document.getElementById('wetAllBtn').addEventListener('click', () => {
+  states = Array(NUM).fill(false); render();
+});
+
+init();
+</script>
+</body>
+</html>
