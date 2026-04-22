@@ -1,1 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Our Team | Awanomy</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #f7f7f7;
+      color: #222;
+    }
 
+    header {
+      background: white;
+      padding: 20px 40px;
+      border-bottom: 1px solid #ddd;
+    }
+
+    header a {
+      text-decoration: none;
+      color: #0077cc;
+      font-weight: 600;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    h1 {
+      font-size: 42px;
+      margin-bottom: 30px;
+    }
+
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 30px;
+    }
+
+    .member {
+      background: white;
+      border-radius: 14px;
+      padding: 24px;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    }
+
+    .member img {
+      width: 140px;
+      height: 140px;
+      object-fit: cover;
+      border-radius: 12px;
+      display: block;
+      margin-bottom: 18px;
+    }
+
+    .member h2 {
+      margin: 0 0 8px 0;
+      font-size: 28px;
+      color: #177ddc;
+    }
+
+    .role {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .member p {
+      line-height: 1.6;
+      font-size: 17px;
+    }
+
+    .back {
+      margin-top: 30px;
+      display: inline-block;
+      text-decoration: none;
+      color: #177ddc;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html">← Back to Home</a>
+  </header>
+
+  <div class="container">
+    <h1>Our Team</h1>
+
+    <div class="team-grid">
+      <div class="member">
+        <img src="images/yuanjun.jpg" alt="Yuanjun Fan">
+        <h2>Yuanjun Fan</h2>
+        <div class="role">Founder, CEO & CTO</div>
+        <p>
+          Graduate Research Assistant at UT Austin with interdisciplinary experience
+          spanning MEMS, signal systems, and startup development. Focused on translating
+          adaptive physical intelligence research into deployable real-world hardware systems.
+        </p>
+      </div>
+
+      <div class="member">
+        <img src="images/andrew_schwarz.jpg" alt="Andrew Schwarz">
+        <h2>Andrew Schwarz</h2>
+        <div class="role">Strategic Business Advisor</div>
+        <p>
+          Professor and MBA advisor with decades of experience in go-to-market strategy,
+          commercialization of advanced technologies, startup formation, and venture advising.
+        </p>
+      </div>
+
+      <div class="member">
+        <img src="images/michael_cullinan.jpg" alt="Michael Cullinan">
+        <h2>Michael Cullinan</h2>
+        <div class="role">Technical Advisor</div>
+        <p>
+          Professor, inventor, and MEMS expert with extensive experience in microsystems
+          research, manufacturing, patents, and technical commercialization.
+        </p>
+      </div>
+    </div>
+
+    <a class="back" href="index.html">Return to Awanomy homepage</a>
+  </div>
+</body>
+</html>
